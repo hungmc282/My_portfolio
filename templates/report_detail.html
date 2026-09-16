@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ report.title }} - Portfolio</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background-color: #f4f6f9; color: #333; margin: 0; padding: 0; }
+        .container { width: 80%; max-width: 800px; margin: 40px auto; padding: 40px; background: white; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        
+        h1 { color: #2c3e50; margin-top: 0; }
+        .meta { color: #7f8c8d; font-size: 14px; margin-bottom: 30px; }
+        .tag { background: #e74c3c; color: white; padding: 4px 10px; border-radius: 4px; font-weight: bold; }
+        
+        /* Thuộc tính white-space rất quan trọng: Nó giúp giữ lại các dấu xuống dòng khi bạn gõ trong form */
+        .content { line-height: 1.8; font-size: 16px; color: #2c3e50; }
+        
+        .back-btn { display: inline-block; margin-top: 40px; color: #3498db; text-decoration: none; font-weight: bold; }
+        .back-btn:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>{{ report.title }}</h1>
+        
+        <div class="meta">
+            <span class="tag">{{ report.category }}</span> 
+            &nbsp; Đăng ngày: {{ report.created_at }}
+        </div>
+        
+        <hr style="border: 0; border-top: 1px solid #eee; margin-bottom: 30px;">
+        
+        <div class="content">{{ report.content | safe }}</div>
+        
+        <a href="/" class="back-btn">⬅ Quay lại Trang chủ</a>
+    </div>
+</body>
+</html>

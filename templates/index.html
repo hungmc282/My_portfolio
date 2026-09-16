@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Portfolio Cá Nhân</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f9; color: #333; margin: 0; padding: 0; }
+        .container { width: 80%; max-width: 900px; margin: 0 auto; padding: 20px; }
+        
+        /* CSS cho phần Header giới thiệu */
+        .profile-header { background: #2c3e50; color: white; padding: 30px; border-radius: 10px; margin-bottom: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .profile-header h1 { margin-top: 0; color: #ecf0f1; }
+        .profile-header p { font-size: 16px; line-height: 1.6; }
+        
+        /* CSS cho từng bài Report */
+        .report-card { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; border-left: 5px solid #3498db; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .report-card h3 { margin-top: 0; color: #2980b9; }
+        .tag { background: #e74c3c; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }
+        .date { color: #7f8c8d; font-size: 13px; margin-left: 10px; }
+        .read-more { display: inline-block; margin-top: 10px; color: #3498db; text-decoration: none; font-weight: bold; }
+        .read-more:hover { text-decoration: underline; }
+        
+        .admin-link { text-align: center; margin-top: 50px; font-size: 12px; }
+        .admin-link a { color: #bdc3c7; text-decoration: none; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- Khu vực 1: Giới thiệu bản thân (CV) -->
+        <div class="profile-header">
+            <h1>Hồ sơ Năng lực & Kiến thức Bảo mật</h1>
+            <p>Xin chào nhà tuyển dụng, tôi là một sinh viên ngành <strong>An toàn thông tin</strong>.</p>
+            <p>Mục tiêu nghề nghiệp của tôi là trở thành một <strong>Pentester</strong>. Tôi chủ động cập nhật và học hỏi thêm kiến thức trong lĩnh vực mạng máy tính và bảo mật hệ thống để đáp ứng nhu cầu công việc của thị trường.</p>
+            <p><strong>Kinh nghiệm thực tiễn:</strong> Từng thực tập ở vị trí ...</p>
+        </div>
+
+        <!-- Khu vực 2: Danh sách các bài Report -->
+        <h2>Các bài Lab & Nghiên cứu</h2>
+        
+        {% for report in reports %}
+            <div class="report-card">
+                <h3>{{ report.title }}</h3>
+                <span class="tag">{{ report.category }}</span>
+                <span class="date">Đăng ngày: {{ report.created_at }}</span>
+                
+                <!-- Cắt ngắn nội dung chỉ hiển thị 150 ký tự đầu tiên -->
+                <p>{{ report.content[:150] | safe }}...</p>
+                
+                <a href="/report/{{ report.id }}" class="read-more">Đọc chi tiết report ➜</a>
+            </div>
+        {% else %}
+            <p>Hiện tại chưa có bài viết nào được đăng tải.</p>
+        {% endfor %}
+
+        <!-- Nút bí mật để bạn vào trang quản trị -->
+        <div class="admin-link">
+            <a href="/login">Khu vực dành cho Quản trị viên</a>
+        </div>
+    </div>
+
+</body>
+</html>

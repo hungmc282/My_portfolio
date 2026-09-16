@@ -1,0 +1,19 @@
+<h2>Trang Quản Trị của {{ session['username'] }}</h2>
+<a href="/logout">Đăng xuất</a> | <a href="/add_report"><button>+ Viết Report Mới</button></a>
+<hr>
+
+<h3>Danh sách các bài Report của bạn:</h3>
+
+<!-- Vòng lặp Jinja2: Lấy từng bài viết trong danh sách để in ra -->
+<ul>
+    {% for report in reports %}
+        <li>
+            <strong>{{ report.title }}</strong> 
+            <i>(Danh mục: {{ report.category }})</i>
+            <!-- report.content[:150] nghĩa là chỉ in ra 150 ký tự đầu tiên cho gọn -->
+            <p>{{ report.content[:150] }}...</p>
+        </li>
+    {% else %}
+        <p>Bạn chưa có bài report nào. Hãy viết bài đầu tiên nhé!</p>
+    {% endfor %}
+</ul>

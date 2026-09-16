@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Thêm Report Mới</title>
+    <!-- Nhúng thư viện CKEditor từ internet -->
+    <script src="https://cdn.ckeditor.com/ckeditor5/39.0.1/classic/ckeditor.js"></script>
+    <style>
+        body { font-family: sans-serif; padding: 20px; }
+        /* Làm cho khung soạn thảo cao hơn một chút */
+        .ck-editor__editable_inline { min-height: 400px; }
+    </style>
+</head>
+<body>
+    <h2>Thêm Report Linux / Write-up mới</h2>
+    
+    <form method="POST" action="/add_report">
+        <label>Tiêu đề bài viết:</label><br>
+        <input type="text" name="title" size="50" required><br><br>
+        
+        <label>Danh mục:</label><br>
+        <input type="text" name="category" size="50"><br><br>
+        
+        <label>Nội dung Report:</label><br>
+        <!-- Đặt id="editor" để CKEditor nhận diện -->
+        <textarea id="editor" name="content"></textarea><br><br>
+        
+        <button type="submit">Lưu Bài Viết</button>
+        <a href="/dashboard">Hủy và quay lại</a>
+    </form>
+
+    <!-- Kích hoạt CKEditor -->
+    <script>
+        ClassicEditor
+            .create(document.querySelector('#editor'))
+            .catch(error => {
+                console.error(error);
+            });
+    </script>
+</body>
+</html>
