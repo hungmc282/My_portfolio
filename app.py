@@ -16,7 +16,9 @@ db_config = {
     'user': os.getenv('DB_USER'),
     'password': os.getenv('DB_PASSWORD'),
     'database': os.getenv('DB_NAME'),
-    'port': int(os.getenv('DB_PORT', 8889))
+    'port': int(os.getenv('DB_PORT', 4000)),
+    'ssl_verify_cert': False,
+    'ssl_verify_identity': False
 }
 
 
