@@ -89,7 +89,7 @@ def login():
             # Lưu thông tin vào Session để ghi nhớ là đã đăng nhập
             session['loggedin'] = True
             session['username'] = user['username']
-            return redirect(url_for('dashboard'))
+            return redirect(url_for('dashboard')) #Chuyển sang giao diện Dashboard khi đăng nhập thành công
         else:
             return "Sai tên đăng nhập hoặc mật khẩu!"
             
