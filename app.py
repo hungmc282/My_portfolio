@@ -1,4 +1,5 @@
 import os
+import uuid
 from dotenv import load_dotenv
 from flask import Flask, render_template, request, redirect, url_for, session
 import mysql.connector
@@ -10,6 +11,10 @@ load_dotenv()
 app = Flask(__name__)
 # Chìa khóa bí mật để mã hóa Session (Cookie ghi nhớ đăng nhập)
 app.secret_key = os.getenv('SECRET_KEY', 'fallback-dev-secret-key') # Use a fallback secret key for development
+# Cấu hình bảo mật cho Session Cookie
+app.config['SESSION_COOKIE_HTTPONLY'] = True 
+app.config['SESSION_COOKIE_SECURE'] = True    
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
 db_config = {
     'host': os.getenv('DB_HOST'),
@@ -81,16 +86,27 @@ def login():
         cursor.execute("SELECT * FROM Users WHERE username = %s", (username,))
         user = cursor.fetchone() # Lấy ra 1 người dùng khớp với username
         
-        cursor.close()
-        conn.close()
-        
         # Kiểm tra xem user có tồn tại và mật khẩu nhập vào (đã check hash) có đúng không
         if user and check_password_hash(user['password'], password_input):
+            # Sinh ra mã token ngẫu nhiên
+            new_token = str(uuid.uuid4())
+            # Cập nhật token mới vào Database để lưu lại
+            cursor.execute("UPDATE Users SET session_token = %s WHERE username = %s", (new_token, username))
+            conn.commit()
+
             # Lưu thông tin vào Session để ghi nhớ là đã đăng nhập
             session['loggedin'] = True
-            session['username'] = user['username']
+            session['username'] = username
+            session['session_token'] = new_token
+
+            #Đóng kết nối Database
+            cursor.close()
+            conn.close()
+
             return redirect(url_for('dashboard')) #Chuyển sang giao diện Dashboard khi đăng nhập thành công
         else:
+            cursor.close()
+            conn.close()
             return "Sai tên đăng nhập hoặc mật khẩu!"
             
     return render_template('login.html')
@@ -99,21 +115,31 @@ def login():
 # ------------------ TRANG QUẢN TRỊ (DASHBOARD) ------------------
 @app.route('/dashboard')
 def dashboard():
-    if 'loggedin' in session:
+    if 'loggedin' in session and 'session_token' in session:
         conn = get_db_connection()
-        # Dùng dictionary=True để lấy dữ liệu dạng cột (như report['title'])
         cursor = conn.cursor(dictionary=True)
         
-        # Lệnh SQL: Lấy tất cả bài viết, sắp xếp theo ngày tạo mới nhất (DESC)
-        cursor.execute("SELECT * FROM Reports ORDER BY created_at DESC")
-        reports_list = cursor.fetchall() 
-        
-        cursor.close()
-        conn.close()
-        
-        # Truyền danh sách bài viết ra ngoài file HTML
-        return render_template('dashboard.html', reports=reports_list)
-        
+       # Soi cuốn sổ Database xem có token nào làm trùng với token trong Session không, nếu có thì mới cho vào Dashboard
+        cursor.execute("SELECT session_token FROM Users WHERE username = %s", (session['username'],))
+        user_db = cursor.fetchone()
+
+        if user_db and user_db['session_token'] == session['session_token']:
+            # Mọi thông tin hợp lệ, lấy danh sách report để hiển thị ra Dashboard
+            cursor.execute("SELECT * FROM Reports ORDER BY created_at DESC")
+            report_list = cursor.fetchall()
+
+            #Đóng kết nối database
+            cursor.close()
+            conn.close()
+
+            return render_template('dashboard.html', reports=report_list)
+        else:
+            # Nếu token trong Session không khớp với token trong Database, xóa Session và chuyển về trang Login
+            session.clear()
+            cursor.close()
+            conn.close()
+            return redirect(url_for('login'))
+          
     return redirect(url_for('login'))
 
 
@@ -121,7 +147,7 @@ def dashboard():
 @app.route('/add_report', methods=['GET', 'POST'])
 def add_report():
     # Chặn những người chưa đăng nhập
-    if 'loggedin' not in session:
+    if 'loggedin' not in session and 'session_token' not in session:
         return redirect(url_for('login'))
         
     if request.method == 'POST':
@@ -150,9 +176,17 @@ def add_report():
 # ------------------ ĐĂNG XUẤT ------------------
 @app.route('/logout')
 def logout():
-    # Xóa dữ liệu Session
-    session.pop('loggedin', None)
-    session.pop('username', None)
+    if 'username' in session:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        # Xóa token trong DB thành chuỗi rỗng
+        cursor.execute("UPDATE Users SET session_token = NULL WHERE username = %s", (session['username'],))
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+    # Xóa Cookie ở trình duyệt
+    session.clear()
     return redirect(url_for('login'))
 
 # ------------------ XEM CHI TIẾT MỘT REPORT ------------------
