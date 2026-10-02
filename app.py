@@ -1,5 +1,6 @@
 import os
 import uuid
+from datetime import datetime, daytime, timedelta # thêm dòng này để tính thời gian khoá
 from dotenv import load_dotenv
 from flask import Flask, render_template, request, redirect, url_for, session
 import mysql.connector
@@ -54,6 +55,9 @@ def register():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
+
+    if len(password) < 8:
+        return "Mật khẩu phải có ít nhất 8 ký tự!"
         
         # Băm mật khẩu (Hash) trước khi lưu
         hashed_password = generate_password_hash(password)
@@ -85,13 +89,23 @@ def login():
         cursor = conn.cursor(dictionary=True) # Lấy dữ liệu dưới dạng Dictionary cho dễ đọc
         cursor.execute("SELECT * FROM Users WHERE username = %s", (username,))
         user = cursor.fetchone() # Lấy ra 1 người dùng khớp với username
-        
+    if user:
+        # Kiểm tra xem user có bị khoá hay không, nếu có thì thông báo thời gian còn lại
+        if user['unlock_until'] and user['unlock_until'] > datetime.now():  
+            # Tính thời gian còn lại để thông báo cho người dùng 
+            remaining_time = user['unlock_until'] - datetime.now()
+            minutes, seconds = divmod(remaining_time.total_seconds(), 60)
+
+            cursor.close()
+            conn.close()
+            return f"Tài khoản của bạn đang bị khoá. Vui lòng thử lại sau {int(minutes)} phút {int(seconds)} giây." 
+
         # Kiểm tra xem user có tồn tại và mật khẩu nhập vào (đã check hash) có đúng không
         if user and check_password_hash(user['password'], password_input):
             # Sinh ra mã token ngẫu nhiên
             new_token = str(uuid.uuid4())
             # Cập nhật token mới vào Database để lưu lại
-            cursor.execute("UPDATE Users SET session_token = %s WHERE username = %s", (new_token, username))
+            cursor.execute("UPDATE Users SET session_token = %s, failed_attempts = 0, locked_until= NULL WHERE username = %s", (new_token, username))
             conn.commit()
 
             # Lưu thông tin vào Session để ghi nhớ là đã đăng nhập
@@ -104,11 +118,23 @@ def login():
             conn.close()
 
             return redirect(url_for('dashboard')) #Chuyển sang giao diện Dashboard khi đăng nhập thành công
+        # Nếu mật khẩu sai, tăng số lần nhập sai và kiểm tra xem có cần khoá tài khoản không
         else:
+            # Tăng số lần nhập sai lên 1
+            fail_attempts = user['failed_attempts'] + 1
+            # Nếu số lần nhập sai >= 5, khoá tài khoản trong 1 tiếng
+            if fail_attempts >= 5:
+                lock_time= datetime.now() + timedelta(hour=1)
+                cursor.execute("UPDATE Users SET failed_attempts = %s, locked_until = %s WHERE username = %s", (fail_attempts, lock_time, username))
+            conn.commit()
             cursor.close()
             conn.close()
-            return "Sai tên đăng nhập hoặc mật khẩu!"
-            
+            return "Bạn đã nhập sai 5 lần! Tài khoản của bạn đã bị khoá trong 1 tiếng."
+    else:
+        cursor.close()
+        conn.close()
+        return "Tên đăng nhập không tồn tại!"
+    
     return render_template('login.html')
 
 
