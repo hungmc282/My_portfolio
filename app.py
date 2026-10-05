@@ -91,14 +91,18 @@ def login():
         user = cursor.fetchone() # Lấy ra 1 người dùng khớp với username
         if user:
             # Kiểm tra xem user có bị khoá hay không, nếu có thì thông báo thời gian còn lại
-            if user.get('locked_until') and user['locked_until'] > datetime.now():  
-                # Tính thời gian còn lại để thông báo cho người dùng 
-                remaining_time = user['locked_until'] - datetime.now()
-                minutes, seconds = divmod(remaining_time.total_seconds(), 60)
+            if user.get('locked_until'):
+                if user['locked_until'] > datetime.now():  
+                    # Tính thời gian còn lại để thông báo cho người dùng 
+                    remaining_time = user['locked_until'] - datetime.now()
+                    minutes, seconds = divmod(remaining_time.total_seconds(), 60)
 
-                cursor.close()
-                conn.close()
-                return f"Tài khoản của bạn đang bị khoá. Vui lòng thử lại sau {int(minutes)} phút {int(seconds)} giây." 
+                    cursor.close()
+                    conn.close()
+                    return f"Tài khoản của bạn đang bị khoá. Vui lòng thử lại sau {int(minutes)} phút {int(seconds)} giây." 
+                else:
+                    # Nếu thời gian khoá đã qua, reset số lần nhập sai để tránh việc vừa nhập sai 1 lần đã bị khoá lại
+                    user['failed_attempts'] = 0
 
             # Kiểm tra xem user có tồn tại và mật khẩu nhập vào (đã check hash) có đúng không
             if check_password_hash(user['password'], password_input):
