@@ -52,6 +52,9 @@ def home():
 # ------------------ CHỨC NĂNG ĐĂNG KÝ ------------------
 @app.route('/register', methods=['GET', 'POST'])
 def register():
+    if session.get('loggedin'):
+        return redirect(url_for('dashboard')) if session.get('role') == 'admin' else redirect(url_for('home'))
+
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
@@ -81,6 +84,9 @@ def register():
 # ------------------ CHỨC NĂNG ĐĂNG NHẬP ------------------
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+    if session.get('loggedin'):
+        return redirect(url_for('dashboard')) if session.get('role') == 'admin' else redirect(url_for('home'))
+
     if request.method == 'POST':
         username = request.form['username']
         password_input = request.form['password']
@@ -116,12 +122,16 @@ def login():
                 session['loggedin'] = True
                 session['username'] = username
                 session['session_token'] = new_token
+                session['role'] = user.get('role', 'user')
 
                 #Đóng kết nối Database
                 cursor.close()
                 conn.close()
 
-                return redirect(url_for('dashboard')) #Chuyển sang giao diện Dashboard khi đăng nhập thành công
+                if session['role'] == 'admin':
+                    return redirect(url_for('dashboard')) #Chuyển sang giao diện Dashboard khi đăng nhập thành công
+                else:
+                    return redirect(url_for('home')) # User thường thì về trang chủ để xem bài và comment
             # Nếu mật khẩu sai, tăng số lần nhập sai và kiểm tra xem có cần khoá tài khoản không
             else:
                 # Tăng số lần nhập sai lên 1
@@ -151,7 +161,7 @@ def login():
 # ------------------ TRANG QUẢN TRỊ (DASHBOARD) ------------------
 @app.route('/dashboard')
 def dashboard():
-    if 'loggedin' in session and 'session_token' in session:
+    if 'loggedin' in session and 'session_token' in session and session.get('role') == 'admin':
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
         
@@ -182,8 +192,8 @@ def dashboard():
 # ------------------ THÊM REPORT MỚI ------------------
 @app.route('/add_report', methods=['GET', 'POST'])
 def add_report():
-    # Chặn những người chưa đăng nhập
-    if 'loggedin' not in session and 'session_token' not in session:
+    # Chặn những người chưa đăng nhập hoặc không phải admin
+    if 'loggedin' not in session or 'session_token' not in session or session.get('role') != 'admin':
         return redirect(url_for('login'))
         
     if request.method == 'POST':
@@ -236,14 +246,39 @@ def view_report(id):
     cursor.execute("SELECT * FROM Reports WHERE id = %s", (id,))
     report = cursor.fetchone() 
     
+    # Lấy danh sách feedback
+    cursor.execute("SELECT * FROM Feedbacks WHERE report_id = %s ORDER BY created_at DESC", (id,))
+    feedbacks = cursor.fetchall()
+    
     cursor.close()
     conn.close()
     
     # Nếu tìm thấy bài viết, chuyển dữ liệu ra trang chi tiết
     if report:
-        return render_template('report_detail.html', report=report)
+        return render_template('report_detail.html', report=report, feedbacks=feedbacks)
     else:
         return "Không tìm thấy bài viết này!", 404
+
+# ------------------ THÊM BÌNH LUẬN ------------------
+@app.route('/report/<int:id>/comment', methods=['POST'])
+def add_comment(id):
+    if 'loggedin' not in session:
+        return redirect(url_for('login'))
+        
+    content = request.form['content']
+    username = session['username']
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "INSERT INTO Feedbacks (report_id, username, content) VALUES (%s, %s, %s)",
+        (id, username, content)
+    )
+    conn.commit()
+    cursor.close()
+    conn.close()
+    
+    return redirect(url_for('view_report', id=id))
 
 if __name__ == '__main__':
     app.run(debug=os.getenv('FLASK_DEBUG', 'False').lower() == 'true')

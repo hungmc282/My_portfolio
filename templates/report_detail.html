@@ -66,9 +66,16 @@
             </div>
             
             <div class="flex items-center space-x-4">
+                {% if session.get('loggedin') %}
+                <span class="text-sm font-medium text-gray-700">Chào, {{ session['username'] }}</span>
+                <a href="/logout" class="text-sm font-medium text-white bg-black hover:bg-gray-800 px-4 py-2 rounded-lg transition-colors">
+                    Đăng Xuất
+                </a>
+                {% else %}
                 <a href="/login" class="text-sm font-medium text-black bg-white border border-black hover:bg-gray-100 px-4 py-2 rounded-lg transition-colors">
                     Đăng Nhập
                 </a>
+                {% endif %}
             </div>
         </header>
 
@@ -109,6 +116,44 @@
                         </div>
                     </div>
                 </article>
+
+                <!-- Thảo luận / Feedback -->
+                <div class="mt-8 bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
+                    <h3 class="text-xl font-bold text-gray-900 mb-6">Thảo luận / Góp ý</h3>
+                    
+                    {% if session.get('loggedin') %}
+                    <form action="/report/{{ report.id }}/comment" method="POST" class="mb-8">
+                        <textarea name="content" rows="3" class="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-1 focus:ring-black" placeholder="Viết bình luận của bạn..." required></textarea>
+                        <div class="mt-3 text-right">
+                            <button type="submit" class="bg-black text-white px-6 py-2 rounded-lg font-medium hover:bg-gray-800 transition-colors">Gửi bình luận</button>
+                        </div>
+                    </form>
+                    {% else %}
+                    <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center mb-8">
+                        <p class="text-gray-600">Bạn cần <a href="/login" class="font-bold underline">đăng nhập</a> để tham gia thảo luận.</p>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Danh sách bình luận -->
+                    <div class="space-y-6">
+                        {% for feedback in feedbacks %}
+                        <div class="flex gap-4">
+                            <div class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center font-bold text-gray-600 shrink-0">
+                                {{ feedback.username[0]|upper }}
+                            </div>
+                            <div>
+                                <div class="flex items-center gap-2 mb-1">
+                                    <span class="font-bold text-gray-900">{{ feedback.username }}</span>
+                                    <span class="text-xs text-gray-500">{{ feedback.created_at }}</span>
+                                </div>
+                                <p class="text-gray-700">{{ feedback.content | safe }}</p>
+                            </div>
+                        </div>
+                        {% else %}
+                        <p class="text-gray-500 italic">Chưa có bình luận nào. Hãy là người đầu tiên!</p>
+                        {% endfor %}
+                    </div>
+                </div>
             </div>
             
         </main>
